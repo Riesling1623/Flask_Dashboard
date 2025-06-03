@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "report_date": "2025-05-31T17:51:24.039885",
+    "analysis_period": {
+      "start": "2025-05-15T00:00:00+00:00",
+      "end": "2025-05-15T23:59:59+00:00"
+    }
+  },
+  "statistics": {
+    "total_sessions": 11,
+    "unique_ips": 1
+  },
+  "top_ips": [
+    {
+      "ip": "192.168.110.128",
+      "count": 11
+    }
+  ],
+  "dangerous_commands": [
+    {
+      "command": "cd ../..",
+      "count": 1
+    }
+  ],
+  "session_details": {
+    "47586359e11e": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:52:07.272604Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "d1c42496a4c4": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:52:28.604752Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "8d69b620063b": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:52:28.698344Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "8df6ec14d283": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:52:28.709788Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "cde8eba6c82e": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:52:28.793607Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "fe57a1cca593": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:52:28.886716Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "7631071ab86b": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:52:29.096631Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "0c174bb2656c": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:52:29.224913Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "6ae846ad45f8": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:52:29.281707Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "10ac19086642": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:52:29.337748Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "6248130b4b16": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-15T03:57:16.153720Z",
+      "login": {
+        "username": "root",
+        "password": "1",
+        "status": "success"
+      },
+      "commands": [
+        "ls",
+        "pwd",
+        "cd ..",
+        "ls",
+        "cd home",
+        "ls",
+        "cd phil",
+        "ls",
+        "cd ../..",
+        "ls",
+        "cd etc",
+        "ls",
+        "ls userdb*",
+        "ls bash*"
+      ],
+      "dangerous_commands": [
+        "cd ../.."
+      ],
+      "downloads": []
+    }
+  }
+}

