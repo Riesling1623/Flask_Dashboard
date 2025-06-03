@@ -10,8 +10,16 @@ const DashboardApp = {
         charts: {
             topIPs: null,
             dangerousCommands: null,
-            timeline: null  // New: timeline chart
-        }
+            timeline: null,
+            failedLogins: null,
+            loginRatio: null,
+            passwordLength: null,
+            passwordPatterns: null,
+            topPasswords: null,
+            hourlyAttacks: null,         // NEW
+            weeklyAttacks: null          // NEW
+        },
+        map: null  // New: Leaflet map instance
     },
     
     // Initialize the application
@@ -106,7 +114,9 @@ const DashboardApp = {
             
             // Render all components
             this.updateHeaderStats();
+            this.renderWorldMap();     // New: render world map first
             this.renderCharts();
+            this.renderAttackTimingAnalysis();  // NEW: render attack timing
             this.renderTable();
             this.setupFilters();
             
@@ -186,6 +196,120 @@ const DashboardApp = {
         requestAnimationFrame(updateCounter);
     },
     
+    // Render World Map with attack origins
+    renderWorldMap() {
+        if (!this.data.currentData || !this.data.currentData.geo_data) return;
+        
+        // Destroy existing map
+        if (this.data.map) {
+            this.data.map.remove();
+        }
+        
+        // Initialize map
+        this.data.map = L.map('worldMap').setView([20, 0], 2);
+        
+        // Add tile layer with dark theme
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 10
+        }).addTo(this.data.map);
+        
+        const geoData = this.data.currentData.geo_data;
+        const topIPs = this.data.currentData.top_ips;
+        
+        // Calculate attack intensity for color coding
+        const maxAttacks = Math.max(...Object.values(topIPs));
+        
+        // Group attacks by country for summary
+        const countryStats = {};
+        
+        // Add markers for each IP
+        Object.entries(geoData).forEach(([ip, location]) => {
+            if (location.latitude && location.longitude && ip in topIPs) {
+                const attackCount = topIPs[ip];
+                const intensity = attackCount / maxAttacks;
+                
+                // Determine marker color based on intensity
+                let color = '#10b981'; // Low - green
+                if (intensity > 0.7) color = '#ef4444'; // High - red
+                else if (intensity > 0.3) color = '#f59e0b'; // Medium - orange
+                
+                // Determine marker size based on attack count
+                const radius = Math.max(8, Math.min(25, attackCount * 3));
+                
+                // Create custom marker
+                const marker = L.circleMarker([location.latitude, location.longitude], {
+                    color: '#ffffff',
+                    weight: 2,
+                    fillColor: color,
+                    fillOpacity: 0.8,
+                    radius: radius
+                }).addTo(this.data.map);
+                
+                // Create popup content with geolocation info
+                const popupContent = `
+                    <div class="popup-content">
+                        <h4><i class="fas fa-globe"></i> ${ip}</h4>
+                        <p><strong>Country:</strong> ${location.country}</p>
+                        <p><strong>City:</strong> ${location.city}</p>
+                        <p><strong>ISP:</strong> ${location.isp}</p>
+                        <p><strong>Region:</strong> ${location.region}</p>
+                        <p class="attack-count"><strong>Attacks:</strong> ${attackCount}</p>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent, {
+                    maxWidth: 300,
+                    className: 'custom-popup'
+                });
+                
+                // Add hover effects
+                marker.on('mouseover', function() {
+                    this.setStyle({
+                        weight: 3,
+                        fillOpacity: 1
+                    });
+                });
+                
+                marker.on('mouseout', function() {
+                    this.setStyle({
+                        weight: 2,
+                        fillOpacity: 0.8
+                    });
+                });
+                
+                // Aggregate by country
+                const country = location.country;
+                if (!countryStats[country]) {
+                    countryStats[country] = {
+                        attacks: 0,
+                        ips: 0
+                    };
+                }
+                countryStats[country].attacks += attackCount;
+                countryStats[country].ips += 1;
+            }
+        });
+        
+        // Add country summary in console for debugging
+        console.log('Attack summary by country:', countryStats);
+        
+        // Fit map to show all markers
+        if (Object.keys(geoData).length > 0) {
+            const group = new L.featureGroup();
+            this.data.map.eachLayer(layer => {
+                if (layer instanceof L.CircleMarker) {
+                    group.addLayer(layer);
+                }
+            });
+            
+            if (group.getLayers().length > 0) {
+                this.data.map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+    },
+    
     // Render charts with modern styling
     renderCharts() {
         if (!this.data.currentData) return;
@@ -194,6 +318,241 @@ const DashboardApp = {
         this.renderTimelineChart();  // New: render timeline chart first
         this.renderTopIPsChart();
         this.renderDangerousCommandsChart();
+        this.renderCredentialAnalysisCharts();  // NEW: render credential analysis
+    },
+
+    renderAttackTimingAnalysis() {
+        if (!this.data.currentData || !this.data.currentData.attack_timing) return;
+
+        this.renderHourlyAttacksChart();
+        this.renderWeeklyAttacksChart();
+        this.renderAttackHeatMap();
+    },
+
+    // Render Hourly Attacks Distribution
+    renderHourlyAttacksChart() {
+        const hourlyData = this.data.currentData.attack_timing.hourly_distribution || {};
+        const ctx = document.getElementById('hourlyAttacksChart').getContext('2d');
+
+        // Generate labels for all 24 hours
+        const labels = Array.from({length: 24}, (_, i) => {
+            const hour = i.toString().padStart(2, '0');
+            return `${hour}:00`;
+        });
+
+        // Get data for all hours, default to 0 if no data
+        const data = labels.map((_, hour) => hourlyData[hour] || 0);
+
+        this.data.charts.hourlyAttacks = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Attack Count',
+                    data: data,
+                    borderColor: '#f59e0b',
+                    backgroundColor: this.createGradient(ctx, 'rgba(245, 158, 11, 0.2)', 'rgba(245, 158, 11, 0.05)'),
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#f59e0b',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        callbacks: {
+                            title: (context) => `Time: ${context[0].label}`,
+                            label: (context) => `Attacks: ${context.parsed.y}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            color: '#64748b'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#e2e8f0'
+                        },
+                        ticks: {
+                            color: '#64748b'
+                        }
+                    }
+                }
+            }
+        });
+    },
+
+    // Render Weekly Attacks Distribution
+    renderWeeklyAttacksChart() {
+        const weeklyData = this.data.currentData.attack_timing.daily_distribution || {};
+        const ctx = document.getElementById('weeklyAttacksChart').getContext('2d');
+        
+        const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const data = dayLabels.map((_, index) => weeklyData[index] || 0);
+        
+        this.data.charts.weeklyAttacks = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dayLabels,
+                datasets: [{
+                    label: 'Attack Count',
+                    data: data,
+                    backgroundColor: this.createGradient(ctx, '#f59e0b', '#d97706'),
+                    borderColor: '#f59e0b',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        callbacks: {
+                            title: (context) => context[0].label,
+                            label: (context) => `Attacks: ${context.parsed.y}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#64748b'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#e2e8f0'
+                        },
+                        ticks: {
+                            color: '#64748b'
+                        }
+                    }
+                }
+            }
+        });
+    },
+
+    renderAttackHeatMap() {
+        if (!this.data.currentData || !this.data.currentData.attack_timing || !this.data.currentData.attack_timing.timeline_heatmap) return;
+
+        const heatmapData = this.data.currentData.attack_timing.timeline_heatmap;
+        const heatmapContainer = document.getElementById('attackHeatmap');
+        
+        // Get all unique dates from the data
+        const dates = new Set();
+        Object.values(heatmapData).forEach(hourData => {
+            Object.keys(hourData).forEach(date => dates.add(date));
+        });
+        const sortedDates = Array.from(dates).sort();
+
+        // Create header row with hour labels
+        let html = '<div class="heatmap-grid">';
+        html += '<div class="heatmap-header">';
+        html += '<div class="heatmap-cell hour-label"></div>'; // Empty corner cell
+        
+        // Add date labels
+        sortedDates.forEach(date => {
+            const displayDate = new Date(date).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric'
+            });
+            html += `<div class="heatmap-cell date-label">${displayDate}</div>`;
+        });
+        html += '</div>';
+
+        // Find the maximum value for color scaling
+        let maxValue = 0;
+        for (let hour = 0; hour < 24; hour++) {
+            const hourData = heatmapData[hour] || {};
+            Object.values(hourData).forEach(count => {
+                maxValue = Math.max(maxValue, count);
+            });
+        }
+
+        // Create rows for each hour
+        for (let hour = 0; hour < 24; hour++) {
+            html += '<div class="heatmap-row">';
+            
+            // Add hour label
+            const hourLabel = `${hour.toString().padStart(2, '0')}:00`;
+            html += `<div class="heatmap-cell hour-label">${hourLabel}</div>`;
+            
+            // Add data cells for each date
+            sortedDates.forEach(date => {
+                const hourData = heatmapData[hour] || {};
+                const value = hourData[date] || 0;
+                const intensity = maxValue > 0 ? value / maxValue : 0;
+                
+                // Calculate color based on intensity
+                const backgroundColor = this.getHeatmapColor(intensity);
+                
+                html += `
+                    <div class="heatmap-cell data-cell" 
+                         style="background-color: ${backgroundColor}"
+                         title="Date: ${date}\nHour: ${hourLabel}\nAttacks: ${value}">
+                        ${value || ''}
+                    </div>`;
+            });
+            
+            html += '</div>';
+        }
+        html += '</div>';
+
+        // Add legend
+        html += `
+            <div class="heatmap-legend">
+                <span class="legend-label">Attack Intensity:</span>
+                <div class="legend-gradient"></div>
+                <span class="legend-max">Max: ${maxValue} attacks</span>
+            </div>`;
+
+        heatmapContainer.innerHTML = html;
+    },
+
+    // Helper function to generate heatmap colors
+    getHeatmapColor(intensity) {
+        if (intensity === 0) return '#ffffff';
+        
+        // Use a gradient from white to red
+        const red = Math.round(239 + (255 - 239) * (1 - intensity));
+        const green = Math.round(68 + (255 - 68) * (1 - intensity));
+        const blue = Math.round(68 + (255 - 68) * (1 - intensity));
+        const alpha = 0.1 + (intensity * 0.9); // Vary transparency based on intensity
+        
+        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
     },
     
     // Destroy existing charts to prevent memory leaks
@@ -326,6 +685,505 @@ const DashboardApp = {
                     point: {
                         hoverRadius: 8
                     }
+                }
+            }
+        });
+    },
+    
+    // NEW: Render Credential Analysis Charts
+    renderCredentialAnalysisCharts() {
+        this.renderFailedLoginsChart();
+        this.renderLoginRatioChart();
+        this.renderPasswordAnalysisCharts();  // NEW: Add password analysis
+    },
+    
+    // NEW: Render Failed Logins Chart
+    renderFailedLoginsChart() {
+        const failedLogins = this.data.currentData.failed_logins || {};
+        const successfulLogins = this.data.currentData.successful_logins || {};
+        
+        // Get top 10 usernames by total attempts (failed + successful)
+        const usernameStats = {};
+        
+        // Combine failed and successful attempts
+        Object.entries(failedLogins).forEach(([username, count]) => {
+            usernameStats[username] = usernameStats[username] || { failed: 0, successful: 0 };
+            usernameStats[username].failed = count;
+        });
+        
+        Object.entries(successfulLogins).forEach(([username, count]) => {
+            usernameStats[username] = usernameStats[username] || { failed: 0, successful: 0 };
+            usernameStats[username].successful = count;
+        });
+        
+        // Sort by total attempts and take top 10
+        const sortedUsernames = Object.entries(usernameStats)
+            .map(([username, stats]) => ({
+                username,
+                failed: stats.failed,
+                successful: stats.successful,
+                total: stats.failed + stats.successful
+            }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 10);
+        
+        const ctx = document.getElementById('failedLoginsChart').getContext('2d');
+        
+        this.data.charts.failedLogins = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: sortedUsernames.map(item => item.username),
+                datasets: [
+                    {
+                        label: 'Failed Attempts',
+                        data: sortedUsernames.map(item => item.failed),
+                        backgroundColor: this.createGradient(ctx, '#ef4444', '#dc2626'),
+                        borderColor: '#ef4444',
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    },
+                    {
+                        label: 'Successful Logins',
+                        data: sortedUsernames.map(item => item.successful),
+                        backgroundColor: this.createGradient(ctx, '#10b981', '#059669'),
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    title: {
+                        display: false
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        callbacks: {
+                            title: (context) => `Username: ${context[0].label}`,
+                            label: (context) => {
+                                const username = sortedUsernames[context.dataIndex];
+                                const total = username.failed + username.successful;
+                                const successRate = total > 0 ? ((username.successful / total) * 100).toFixed(1) : 0;
+                                
+                                if (context.datasetIndex === 0) {
+                                    return `Failed: ${context.parsed.y} attempts`;
+                                } else {
+                                    return `Successful: ${context.parsed.y} (${successRate}% success rate)`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                size: 11
+                            },
+                            maxRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#e2e8f0'
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                size: 11
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+    },
+    
+    // NEW: Render Login Ratio Pie Chart
+    renderLoginRatioChart() {
+        const failedLogins = this.data.currentData.failed_logins || {};
+        const successfulLogins = this.data.currentData.successful_logins || {};
+        
+        const totalFailed = Object.values(failedLogins).reduce((sum, count) => sum + count, 0);
+        const totalSuccessful = Object.values(successfulLogins).reduce((sum, count) => sum + count, 0);
+        const total = totalFailed + totalSuccessful;
+        
+        if (total === 0) {
+            this.renderEmptyChart(document.getElementById('loginRatioChart').getContext('2d'), 'No login data available');
+            return;
+        }
+        
+        const ctx = document.getElementById('loginRatioChart').getContext('2d');
+        
+        this.data.charts.loginRatio = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Failed Attempts', 'Successful Logins'],
+                datasets: [{
+                    data: [totalFailed, totalSuccessful],
+                    backgroundColor: [
+                        '#ef4444',  // Red for failed
+                        '#10b981'   // Green for successful
+                    ],
+                    borderColor: [
+                        '#dc2626',
+                        '#059669'
+                    ],
+                    borderWidth: 3,
+                    hoverBorderWidth: 4,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    title: {
+                        display: false
+                    },
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: (context) => {
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return `${context.label}: ${context.parsed} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1500,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+    },
+    
+    // NEW: Render Password Analysis Charts
+    renderPasswordAnalysisCharts() {
+        this.renderPasswordLengthChart();
+        this.renderPasswordPatternsChart();
+        this.renderTopPasswordsChart();
+    },
+    
+    // NEW: Render Password Length Distribution Chart
+    renderPasswordLengthChart() {
+        const passwordAnalysis = this.data.currentData.password_analysis;
+        if (!passwordAnalysis || !passwordAnalysis.length_distribution) {
+            this.renderEmptyChart(document.getElementById('passwordLengthChart').getContext('2d'), 'No password data available');
+            return;
+        }
+        
+        const lengthData = passwordAnalysis.length_distribution;
+        const sortedLengths = Object.entries(lengthData)
+            .sort(([a], [b]) => parseInt(a) - parseInt(b))
+            .slice(0, 15); // Show up to 15 different lengths
+        
+        const ctx = document.getElementById('passwordLengthChart').getContext('2d');
+        
+        this.data.charts.passwordLength = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: sortedLengths.map(([length]) => `${length} chars`),
+                datasets: [{
+                    label: 'Number of Passwords',
+                    data: sortedLengths.map(([, count]) => count),
+                    borderColor: '#8b5cf6',
+                    backgroundColor: this.createGradient(ctx, 'rgba(139, 92, 246, 0.2)', 'rgba(139, 92, 246, 0.02)'),
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#8b5cf6',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointHoverBackgroundColor: '#7c3aed',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: false
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#8b5cf6',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            title: (context) => `Password Length: ${context[0].label}`,
+                            label: (context) => `Count: ${context.parsed.y} passwords`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: '#e2e8f0'
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#e2e8f0'
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                size: 11
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+    },
+    
+    // NEW: Render Password Patterns Chart
+    renderPasswordPatternsChart() {
+        const passwordAnalysis = this.data.currentData.password_analysis;
+        if (!passwordAnalysis || !passwordAnalysis.pattern_distribution) {
+            this.renderEmptyChart(document.getElementById('passwordPatternsChart').getContext('2d'), 'No pattern data available');
+            return;
+        }
+        
+        const patterns = passwordAnalysis.pattern_distribution;
+        const patternLabels = {
+            'numeric_only': 'Numbers Only',
+            'alpha_only': 'Letters Only', 
+            'alphanumeric': 'Letters + Numbers',
+            'special_chars': 'With Special Characters',
+            'empty': 'Empty Password',
+            'common_weak': 'Common Weak Passwords'
+        };
+        
+        const patternColors = {
+            'numeric_only': '#ef4444',      // Red
+            'alpha_only': '#f59e0b',        // Orange
+            'alphanumeric': '#10b981',      // Green
+            'special_chars': '#3b82f6',     // Blue
+            'empty': '#6b7280',             // Gray
+            'common_weak': '#dc2626'        // Dark Red
+        };
+        
+        const filteredPatterns = Object.entries(patterns).filter(([, count]) => count > 0);
+        
+        const ctx = document.getElementById('passwordPatternsChart').getContext('2d');
+        
+        this.data.charts.passwordPatterns = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: filteredPatterns.map(([pattern]) => patternLabels[pattern]),
+                datasets: [{
+                    data: filteredPatterns.map(([, count]) => count),
+                    backgroundColor: filteredPatterns.map(([pattern]) => patternColors[pattern]),
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '50%',
+                plugins: {
+                    title: {
+                        display: false
+                    },
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#8b5cf6',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: (context) => {
+                                const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return `${context.label}: ${context.parsed} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1500,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+    },
+    
+    // NEW: Render Top Passwords Chart
+    renderTopPasswordsChart() {
+        const passwordAnalysis = this.data.currentData.password_analysis;
+        if (!passwordAnalysis || !passwordAnalysis.top_passwords) {
+            this.renderEmptyChart(document.getElementById('topPasswordsChart').getContext('2d'), 'No password data available');
+            return;
+        }
+        
+        const topPasswords = Object.entries(passwordAnalysis.top_passwords)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 10); // Top 10 passwords
+        
+        if (topPasswords.length === 0) {
+            this.renderEmptyChart(document.getElementById('topPasswordsChart').getContext('2d'), 'No password data available');
+            return;
+        }
+        
+        const ctx = document.getElementById('topPasswordsChart').getContext('2d');
+        
+        this.data.charts.topPasswords = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: topPasswords.map(([password]) => password || '(empty)'),
+                datasets: [{
+                    label: 'Usage Count',
+                    data: topPasswords.map(([, count]) => count),
+                    backgroundColor: this.createGradient(ctx, '#8b5cf6', '#7c3aed'),
+                    borderColor: '#8b5cf6',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y', // Horizontal bar chart
+                plugins: {
+                    title: {
+                        display: false
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#8b5cf6',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            title: (context) => `Password: "${context[0].label}"`,
+                            label: (context) => `Used ${context.parsed.x} times`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#e2e8f0'
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                size: 11
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
                 }
             }
         });

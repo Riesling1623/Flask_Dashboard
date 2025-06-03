@@ -10,8 +10,12 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
+    <!-- Leaflet CSS for world map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard1.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
 <body>
     <div class="dashboard-container">
@@ -88,6 +92,37 @@
             <div id="dashboardContent" class="dashboard-content" style="display: none;">
                 <!-- Charts Section -->
                 <section class="charts-section">
+                    <!-- World Map Section -->
+                    <div class="map-section">
+                        <div class="map-card">
+                            <div class="map-header">
+                                <h3><i class="fas fa-globe-americas"></i> Attack Origins</h3>
+                                <div class="map-actions">
+                                    <div class="map-legend">
+                                        <div class="legend-item">
+                                            <div class="legend-color" style="background: #ef4444;"></div>
+                                            <span>High Activity</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <div class="legend-color" style="background: #f59e0b;"></div>
+                                            <span>Medium Activity</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <div class="legend-color" style="background: #10b981;"></div>
+                                            <span>Low Activity</span>
+                                        </div>
+                                    </div>
+                                    <button class="btn-icon" title="Refresh Map">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="map-container">
+                                <div id="worldMap" class="world-map"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Sessions Timeline Chart (only show if multiple days) -->
                     <div id="timelineChartContainer" class="timeline-chart-container" style="display: none;">
                         <div class="chart-card">
@@ -134,7 +169,93 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Credential Analysis Section -->
+                    <div class="credential-analysis-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-user-shield"></i> Credential Analysis</h3>
+                        </div>
+                        
+                        <div class="chart-grid">
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <h3><i class="fas fa-user-times"></i> Failed Login Attempts</h3>
+                                    <div class="chart-actions">
+                                        <button class="btn-icon" title="Refresh">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="failedLoginsChart"></canvas>
+                                </div>
+                            </div>
+                            
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <h3><i class="fas fa-chart-pie"></i> Login Success vs Failed</h3>
+                                    <div class="chart-actions">
+                                        <button class="btn-icon" title="Refresh">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="loginRatioChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Password Analysis Charts -->
+                        <div class="chart-grid">
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <h3><i class="fas fa-key"></i> Password Length Distribution</h3>
+                                    <div class="chart-actions">
+                                        <button class="btn-icon" title="Refresh">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="passwordLengthChart"></canvas>
+                                </div>
+                            </div>
+                            
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <h3><i class="fas fa-shield-alt"></i> Password Patterns</h3>
+                                    <div class="chart-actions">
+                                        <button class="btn-icon" title="Refresh">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="passwordPatternsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Passwords Chart -->
+                        <div class="chart-grid">
+                            <div class="chart-card chart-card-full">
+                                <div class="chart-header">
+                                    <h3><i class="fas fa-list-ol"></i> Most Common Passwords</h3>
+                                    <div class="chart-actions">
+                                        <button class="btn-icon" title="Refresh">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="topPasswordsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
+                
 
                 <!-- Sessions Table Section -->
                 <section class="table-section">
@@ -225,6 +346,6 @@
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="{{ url_for('static', filename='js/dashboard1.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>

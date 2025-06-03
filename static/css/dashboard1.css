@@ -317,6 +317,104 @@ body {
     gap: 2rem;
 }
 
+/* World Map Styles */
+.map-section {
+    margin-bottom: 2rem;
+}
+
+.map-card {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+}
+
+.map-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.map-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.map-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.map-legend {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.map-container {
+    position: relative;
+    background: #f8fafc;
+}
+
+.world-map {
+    height: 400px;
+    width: 100%;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+/* Leaflet popup customization */
+.leaflet-popup-content-wrapper {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow-lg);
+}
+
+.leaflet-popup-content {
+    margin: 1rem;
+    font-family: inherit;
+}
+
+.popup-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.popup-content p {
+    margin: 0.25rem 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.popup-content .attack-count {
+    font-weight: 600;
+    color: var(--danger-color);
+}
+
 /* Timeline Chart Container */
 .timeline-chart-container {
     margin-bottom: 2rem;
@@ -329,6 +427,165 @@ body {
 
 .timeline-chart-container .chart-container {
     height: 250px;
+}
+
+/* Credential Analysis Section */
+.credential-analysis-section {
+    margin-top: 2rem;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.section-header {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+}
+
+.section-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.credential-analysis-section .chart-grid {
+    padding: 2rem;
+}
+
+.credential-analysis-section .chart-card {
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    border: 1px solid #ddd6fe;
+}
+
+.credential-analysis-section .chart-header h3 {
+    color: #6b46c1;
+}
+
+/* Full width chart for top passwords */
+.chart-card-full {
+    grid-column: 1 / -1; /* Span across all columns */
+}
+
+/* Attack Timing Section */
+.attack-timing-section {
+    margin-top: 2rem;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.attack-timing-section .section-header {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.attack-timing-section .chart-grid {
+    padding: 2rem;
+}
+
+.attack-timing-section .chart-card {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 1px solid #fed7aa;
+}
+
+.attack-timing-section .chart-header h3 {
+    color: #d97706;
+}
+
+/* Heatmap Styles */
+.heatmap-container {
+    height: auto !important;
+    min-height: 400px;
+}
+
+.attack-heatmap {
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: var(--border-radius-sm);
+    overflow-x: auto;
+}
+
+.heatmap-grid {
+    display: inline-block;
+    min-width: 100%;
+}
+
+.heatmap-header,
+.heatmap-row {
+    display: flex;
+    align-items: center;
+}
+
+.heatmap-cell {
+    min-width: 60px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+}
+
+.heatmap-cell.hour-label,
+.heatmap-cell.date-label {
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+    border-color: #cbd5e1;
+}
+
+.heatmap-cell.data-cell {
+    cursor: pointer;
+    transition: var(--transition);
+    color: #1e293b;
+}
+
+.heatmap-cell.data-cell:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+    z-index: 10;
+    position: relative;
+    border-color: #3b82f6;
+}
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: var(--border-radius-sm);
+}
+
+.legend-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.legend-gradient {
+    width: 100px;
+    height: 20px;
+    background: linear-gradient(to right, 
+        rgba(239, 68, 68, 0.1) 0%, 
+        rgba(239, 68, 68, 1) 100%);
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.legend-max {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-style: italic;
 }
 
 /* Charts Section */
