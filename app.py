@@ -29,33 +29,35 @@ def generate_mock_ip():
     """Generate a random IP from our mock data"""
     return random.choice(list(MOCK_GEO_DATA.keys()))
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=1000)
 def get_ip_location(ip_address):
     """Get IP geolocation with caching and mock data for testing"""
-    # For testing, if it's a private IP, convert to mock public IP
-    if (ip_address.startswith('10.') or
+    
+    # For testing: if it's a private IP, convert to mock public IP
+    if (ip_address.startswith('192.168.') or 
+        ip_address.startswith('10.') or 
         ip_address.startswith('172.') or
-        ip_address.startswith('192.168.') or
         ip_address == '127.0.0.1' or
         ip_address == 'localhost'):
-
+        
         print(f"Converting private IP {ip_address} to mock data for testing")
-        # Use the last octet to determine which mock IP to return
+        # Use the last octet to determine which mock IP to use
         try:
             last_octet = int(ip_address.split('.')[-1]) if '.' in ip_address else 1
-            mock_ip = list(MOCK_GEO_DATA.keys())
+            mock_ips = list(MOCK_GEO_DATA.keys())
+            mock_ip = mock_ips[last_octet % len(mock_ips)]
             return MOCK_GEO_DATA[mock_ip].copy()
         except:
             return MOCK_GEO_DATA['8.8.8.8'].copy()
     
     # Use mock data if available
     if ip_address in MOCK_GEO_DATA:
-        print(f"Using mock data for IP {ip_address}")
+        print(f"Using mock data for IP: {ip_address}")
         return MOCK_GEO_DATA[ip_address].copy()
     
     # Try real API for public IPs
     try:
-        print(f"Fetching real geolocation for IP {ip_address}")
+        print(f"Fetching real geolocation for IP: {ip_address}")
         response = requests.get(f'https://ipapi.co/{ip_address}/json/', timeout=5)
         if response.status_code == 200:
             data = response.json()
@@ -71,8 +73,9 @@ def get_ip_location(ip_address):
                     'timezone': data.get('timezone', 'Unknown')
                 }
     except Exception as e:
-        print(f"Error fetching IP location for {ip_address}: {e}")
-    # Return random mock data if real API fails
+        print(f"Error getting location for {ip_address}: {e}")
+    
+    # Return random mock data as fallback
     return random.choice(list(MOCK_GEO_DATA.values())).copy()
 
 def parse_timestamp(ts):
@@ -105,7 +108,7 @@ def load_analysis_data(start_date, end_date):
         'top_ips': {},
         'dangerous_commands': {},
         'daily_sessions': {},
-        'geo_data': {},
+        'geo_data': {},  # New: geographical data
         'all_sessions': []
     }
     
@@ -118,14 +121,14 @@ def load_analysis_data(start_date, end_date):
         dangerous_commands_counter = Counter()
         all_usernames_counter = Counter()
         daily_sessions_counter = Counter()
-        geo_data = {}
+        geo_data = {}  # Store IP -> location mapping
         
         # Generate all dates in range
         current_dt = start_dt
         while current_dt <= end_dt:
             date_str = current_dt.strftime('%Y%m%d')
             file_path = f'data/analysis_{date_str}.json'
-
+            
             # Initialize day with 0 sessions
             date_key = current_dt.strftime('%Y-%m-%d')
             daily_sessions_counter[date_key] = 0
@@ -140,10 +143,10 @@ def load_analysis_data(start_date, end_date):
                         sessions_count = data['statistics'].get('total_sessions', 0)
                         combined_data['statistics']['total_sessions'] += sessions_count
                         combined_data['statistics']['unique_ips'] += data['statistics'].get('unique_ips', 0)
+                        
+                        # Count sessions for this day
+                        daily_sessions_counter[date_key] = sessions_count
                     
-                    # Count sessions for this day
-                    daily_sessions_counter[date_key] = sessions_count
-
                     # Process top IPs and get geo data
                     if 'top_ips' in data:
                         for ip_data in data['top_ips']:
@@ -151,16 +154,15 @@ def load_analysis_data(start_date, end_date):
                             count = ip_data['count']
                             top_ips_counter[ip] += count
                             all_ips.add(ip)
-
+                            
                             # Get geolocation for this IP
                             if ip not in geo_data:
                                 print(f"Getting location for IP: {ip}")
                                 geo_data[ip] = get_ip_location(ip)
-                                # No rate limiting for mock data
-                                if not any(ip.startswith(prefix) for prefix in
-                                           ['10.', '172.', '192.168.', '127.0.0.1', 'localhost']):
+                                # No rate limiting needed for mock data
+                                if not any(ip.startswith(prefix) for prefix in ['192.168.', '10.', '172.', '127.']):
                                     time.sleep(0.1)  # Only rate limit real API calls
-
+                    
                     # Process dangerous commands
                     if 'dangerous_commands' in data:
                         for cmd_data in data['dangerous_commands']:
@@ -202,13 +204,13 @@ def load_analysis_data(start_date, end_date):
         combined_data['top_usernames'] = dict(all_usernames_counter)
         combined_data['dangerous_commands'] = dict(dangerous_commands_counter)
         combined_data['daily_sessions'] = dict(daily_sessions_counter)
-        combined_data['geo_data'] = geo_data
+        combined_data['geo_data'] = geo_data  # Add geographical data
         
-        # Analyze failed login attempts by username
+        # NEW: Analyze failed login attempts by username
         failed_logins_counter = Counter()
         successful_logins_counter = Counter()
-
-        # Password analysis
+        
+        # NEW: Password analysis
         password_lengths = Counter()
         password_patterns = {
             'numeric_only': 0,          # 123456
@@ -227,25 +229,26 @@ def load_analysis_data(start_date, end_date):
             '123', 'pass', 'default', 'toor', 'oracle', 'postgres',
             'mysql', 'ubuntu', 'centos', 'redhat', 'debian'
         }
-
+        
         for session in combined_data['sessions']:
             username = session.get('username', 'unknown')
             password = session.get('password', '')
             login_status = session.get('login_status', '').lower()
-
+            
+            # Count login attempts
             if login_status == 'failed' or login_status == 'failure':
                 failed_logins_counter[username] += 1
             elif login_status == 'success':
                 successful_logins_counter[username] += 1
             
-            # Analyze password
+            # Analyze password patterns
             if password:
                 # Password length analysis
                 password_lengths[len(password)] += 1
-
-                # Count occurrences of spefic password
+                
+                # Count occurrences of specific passwords
                 common_passwords[password] += 1
-
+                
                 # Pattern analysis
                 if password.isdigit():
                     password_patterns['numeric_only'] += 1
@@ -253,7 +256,7 @@ def load_analysis_data(start_date, end_date):
                     password_patterns['alpha_only'] += 1
                 elif password.isalnum():
                     password_patterns['alphanumeric'] += 1
-                elif any(c in password for c in '!@#$%^&*()-_=+[]{}|;:\'",.<>?/'):
+                elif any(c in password for c in '!@#$%^&*()_+-=[]{}|;:,.<>?'):
                     password_patterns['special_chars'] += 1
                 
                 # Check for common weak passwords
@@ -261,51 +264,52 @@ def load_analysis_data(start_date, end_date):
                     password_patterns['common_weak'] += 1
             else:
                 password_patterns['empty'] += 1
-
+        
         combined_data['failed_logins'] = dict(failed_logins_counter)
         combined_data['successful_logins'] = dict(successful_logins_counter)
-
-        # Add password analysis data
+        
+        # NEW: Add password analysis data
         combined_data['password_analysis'] = {
             'length_distribution': dict(password_lengths),
-            'pattern_distribution': dict(password_patterns),
-            'top_passwords': dict(common_passwords.most_common(20)),
+            'pattern_distribution': password_patterns,
+            'top_passwords': dict(common_passwords.most_common(20))  # Top 20 most used passwords
         }
-
-        # Attack timing analysis
-        # hourly_attacks = Counter()
-        # daily_attacks = Counter()
-        # attack_timeline = {}
-
-        # for session in combined_data['sessions']:
-        #     timestamp = session.get('timestamp', '')
-        #     if timestamp:
-        #         try:
-        #             # Parse timestamp
-        #             dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-
-        #             # Count attacks by hour (0-23)
-        #             hour = dt.hour
-        #             hourly_attacks[hour] += 1
-
-        #             # Count attacks by day of week
-        #             day_of_week = dt.weekday()
-        #             daily_attacks[day_of_week] += 1
-
-        #             # Build timeline for heatmap (hour x date)
-        #             date_key = dt.strftime("%Y-%m-%d")
-        #             if hour not in attack_timeline:
-        #                 attack_timeline[hour] = {}
-        #             attack_timeline[hour][date_key] = attack_timeline[hour].get(date_key, 0) + 1
-        #         except Exception as e:
-        #             print(f"Error parsing timestamp {timestamp}: {e}")
         
-        # combined_data['attack_timing'] = {
-        #     'hourly_distribution': dict(hourly_attacks),
-        #     'daily_distribution': dict(daily_attacks),
-        #     'timeline_heatmap': attack_timeline
-        # }
-
+        # NEW: Attack timing analysis
+        hourly_attacks = Counter()  # Hour (0-23) -> count
+        daily_attacks = Counter()   # Day of week (0-6) -> count
+        attack_timeline = {}        # Hour -> {date: count}
+        
+        for session in combined_data['sessions']:
+            timestamp = session.get('timestamp', '')
+            if timestamp:
+                try:
+                    # Parse timestamp
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    
+                    # Count attacks by hour (0-23)
+                    hour = dt.hour
+                    hourly_attacks[hour] += 1
+                    
+                    # Count attacks by day of week (0=Monday, 6=Sunday)
+                    day_of_week = dt.weekday()
+                    daily_attacks[day_of_week] += 1
+                    
+                    # Build timeline for heatmap (hour x date)
+                    date_key = dt.strftime('%Y-%m-%d')
+                    if hour not in attack_timeline:
+                        attack_timeline[hour] = {}
+                    attack_timeline[hour][date_key] = attack_timeline[hour].get(date_key, 0) + 1
+                    
+                except Exception as e:
+                    print(f"Error parsing timestamp {timestamp}: {e}")
+        
+        combined_data['attack_timing'] = {
+            'hourly_distribution': dict(hourly_attacks),
+            'daily_distribution': dict(daily_attacks),
+            'timeline_heatmap': attack_timeline
+        }
+        
         # Calculate total commands
         total_commands = sum(len(session['commands']) for session in combined_data['sessions'])
         combined_data['statistics']['total_commands'] = total_commands

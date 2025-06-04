@@ -170,7 +170,7 @@
                         </div>
                     </div>
 
-                    <!-- Credential Analysis Section -->
+                    <!-- NEW: Credential Analysis Section -->
                     <div class="credential-analysis-section">
                         <div class="section-header">
                             <h3><i class="fas fa-user-shield"></i> Credential Analysis</h3>
@@ -206,7 +206,7 @@
                             </div>
                         </div>
 
-                        <!-- Password Analysis Charts -->
+                        <!-- NEW: Password Analysis Charts -->
                         <div class="chart-grid">
                             <div class="chart-card">
                                 <div class="chart-header">
@@ -237,7 +237,7 @@
                             </div>
                         </div>
 
-                        <!-- Top Passwords Chart -->
+                        <!-- NEW: Top Passwords Chart -->
                         <div class="chart-grid">
                             <div class="chart-card chart-card-full">
                                 <div class="chart-header">
@@ -254,8 +254,61 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- NEW: Attack Timing Analysis Section -->
+                    <div class="attack-timing-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-clock"></i> Attack Timing Analysis</h3>
+                        </div>
+                        
+                        <div class="chart-grid">
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <h3><i class="fas fa-chart-line"></i> Hourly Attack Distribution</h3>
+                                    <div class="chart-actions">
+                                        <button class="btn-icon" title="Refresh">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="hourlyAttacksChart"></canvas>
+                                </div>
+                            </div>
+                            
+                            <div class="chart-card">
+                                <div class="chart-header">
+                                    <h3><i class="fas fa-calendar-week"></i> Weekly Attack Pattern</h3>
+                                    <div class="chart-actions">
+                                        <button class="btn-icon" title="Refresh">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="weeklyAttacksChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NEW: Attack Heatmap -->
+                        <div class="chart-grid">
+                            <div class="chart-card chart-card-full">
+                                <div class="chart-header">
+                                    <h3><i class="fas fa-fire"></i> Attack Intensity Heatmap</h3>
+                                    <div class="chart-actions">
+                                        <button class="btn-icon" title="Refresh">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="chart-container heatmap-container">
+                                    <div id="attackHeatmap" class="attack-heatmap"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
-                
 
                 <!-- Sessions Table Section -->
                 <section class="table-section">

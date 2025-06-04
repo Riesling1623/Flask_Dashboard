@@ -16,8 +16,8 @@ const DashboardApp = {
             passwordLength: null,
             passwordPatterns: null,
             topPasswords: null,
-            // hourlyAttacks: null,
-            // weeklyAttacks: null
+            hourlyAttacks: null,         // NEW
+            weeklyAttacks: null          // NEW
         },
         map: null  // New: Leaflet map instance
     },
@@ -114,11 +114,12 @@ const DashboardApp = {
             
             // Render all components
             this.updateHeaderStats();
-            this.renderWorldMap();     // render world map first
+            this.renderWorldMap();     // New: render world map first
             this.renderCharts();
-            // this.renderAttackTimingAnalysis();
+            this.renderAttackTimingAnalysis();  // NEW: render attack timing
             this.renderTable();
             this.setupFilters();
+            
         } catch (err) {
             this.setLoadingState(false);
             this.showError(`Error loading data: ${err.message}`);
@@ -314,47 +315,252 @@ const DashboardApp = {
         if (!this.data.currentData) return;
 
         this.destroyExistingCharts();
-        this.renderTimelineChart();  // render timeline chart first
+        this.renderTimelineChart();  // New: render timeline chart first
         this.renderTopIPsChart();
         this.renderDangerousCommandsChart();
-        this.renderCredentialAnalysisCharts();  // render credential analysis
-        // this.renderAttackTimingAnalysis();
+        this.renderCredentialAnalysisCharts();  // NEW: render credential analysis
+    },
+
+    renderAttackTimingAnalysis() {
+        if (!this.data.currentData || !this.data.currentData.attack_timing) return;
+
+        this.renderHourlyAttacksChart();
+        this.renderWeeklyAttacksChart();
+        this.renderAttackHeatMap();
+    },
+
+    // Render Hourly Attacks Distribution
+    renderHourlyAttacksChart() {
+        const hourlyData = this.data.currentData.attack_timing.hourly_distribution || {};
+        const ctx = document.getElementById('hourlyAttacksChart').getContext('2d');
+
+        // Generate labels for all 24 hours
+        const labels = Array.from({length: 24}, (_, i) => {
+            const hour = i.toString().padStart(2, '0');
+            return `${hour}:00`;
+        });
+
+        // Get data for all hours, default to 0 if no data
+        const data = labels.map((_, hour) => hourlyData[hour] || 0);
+
+        this.data.charts.hourlyAttacks = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Attack Count',
+                    data: data,
+                    borderColor: '#f59e0b',
+                    backgroundColor: this.createGradient(ctx, 'rgba(245, 158, 11, 0.2)', 'rgba(245, 158, 11, 0.05)'),
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#f59e0b',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        callbacks: {
+                            title: (context) => `Time: ${context[0].label}`,
+                            label: (context) => `Attacks: ${context.parsed.y}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            color: '#64748b'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#e2e8f0'
+                        },
+                        ticks: {
+                            color: '#64748b'
+                        }
+                    }
+                }
+            }
+        });
+    },
+
+    // Render Weekly Attacks Distribution
+    renderWeeklyAttacksChart() {
+        const weeklyData = this.data.currentData.attack_timing.daily_distribution || {};
+        const ctx = document.getElementById('weeklyAttacksChart').getContext('2d');
+        
+        const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const data = dayLabels.map((_, index) => weeklyData[index] || 0);
+        
+        this.data.charts.weeklyAttacks = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dayLabels,
+                datasets: [{
+                    label: 'Attack Count',
+                    data: data,
+                    backgroundColor: this.createGradient(ctx, '#f59e0b', '#d97706'),
+                    borderColor: '#f59e0b',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        callbacks: {
+                            title: (context) => context[0].label,
+                            label: (context) => `Attacks: ${context.parsed.y}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#64748b'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#e2e8f0'
+                        },
+                        ticks: {
+                            color: '#64748b'
+                        }
+                    }
+                }
+            }
+        });
+    },
+
+    renderAttackHeatMap() {
+        if (!this.data.currentData || !this.data.currentData.attack_timing || !this.data.currentData.attack_timing.timeline_heatmap) return;
+
+        const heatmapData = this.data.currentData.attack_timing.timeline_heatmap;
+        const heatmapContainer = document.getElementById('attackHeatmap');
+        
+        // Get all unique dates from the data
+        const dates = new Set();
+        Object.values(heatmapData).forEach(hourData => {
+            Object.keys(hourData).forEach(date => dates.add(date));
+        });
+        const sortedDates = Array.from(dates).sort();
+
+        // Create header row with hour labels
+        let html = '<div class="heatmap-grid">';
+        html += '<div class="heatmap-header">';
+        html += '<div class="heatmap-cell hour-label"></div>'; // Empty corner cell
+        
+        // Add date labels
+        sortedDates.forEach(date => {
+            const displayDate = new Date(date).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric'
+            });
+            html += `<div class="heatmap-cell date-label">${displayDate}</div>`;
+        });
+        html += '</div>';
+
+        // Find the maximum value for color scaling
+        let maxValue = 0;
+        for (let hour = 0; hour < 24; hour++) {
+            const hourData = heatmapData[hour] || {};
+            Object.values(hourData).forEach(count => {
+                maxValue = Math.max(maxValue, count);
+            });
+        }
+
+        // Create rows for each hour
+        for (let hour = 0; hour < 24; hour++) {
+            html += '<div class="heatmap-row">';
+            
+            // Add hour label
+            const hourLabel = `${hour.toString().padStart(2, '0')}:00`;
+            html += `<div class="heatmap-cell hour-label">${hourLabel}</div>`;
+            
+            // Add data cells for each date
+            sortedDates.forEach(date => {
+                const hourData = heatmapData[hour] || {};
+                const value = hourData[date] || 0;
+                const intensity = maxValue > 0 ? value / maxValue : 0;
+                
+                // Calculate color based on intensity
+                const backgroundColor = this.getHeatmapColor(intensity);
+                
+                html += `
+                    <div class="heatmap-cell data-cell" 
+                         style="background-color: ${backgroundColor}"
+                         title="Date: ${date}\nHour: ${hourLabel}\nAttacks: ${value}">
+                        ${value || ''}
+                    </div>`;
+            });
+            
+            html += '</div>';
+        }
+        html += '</div>';
+
+        // Add legend
+        html += `
+            <div class="heatmap-legend">
+                <span class="legend-label">Attack Intensity:</span>
+                <div class="legend-gradient"></div>
+                <span class="legend-max">Max: ${maxValue} attacks</span>
+            </div>`;
+
+        heatmapContainer.innerHTML = html;
+    },
+
+    // Helper function to generate heatmap colors
+    getHeatmapColor(intensity) {
+        if (intensity === 0) return '#ffffff';
+        
+        // Use a gradient from white to red
+        const red = Math.round(239 + (255 - 239) * (1 - intensity));
+        const green = Math.round(68 + (255 - 68) * (1 - intensity));
+        const blue = Math.round(68 + (255 - 68) * (1 - intensity));
+        const alpha = 0.1 + (intensity * 0.9); // Vary transparency based on intensity
+        
+        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
     },
     
     // Destroy existing charts to prevent memory leaks
     destroyExistingCharts() {
-        // Object.values(this.data.charts).forEach(chart => {
-        //     if (chart) {
-        //         chart.destroy();
-        //     }
-        // });
-        const chartIds = [
-            'timelineChart',
-            'topIPsChart', 
-            'dangerousCommandsChart',
-            'failedLoginsChart',
-            'loginRatioChart',
-            'passwordLengthChart',
-            'passwordPatternsChart',
-            'topPasswordsChart',
-            // 'hourlyAttacksChart',    // Add these new charts
-            // 'weeklyAttacksChart'     // Add these new charts
-        ];
-
-        // Destroy each chart if it exists
-        chartIds.forEach(id => {
-            const canvas = document.getElementById(id);
-            if (canvas) {
-                const chartInstance = Chart.getChart(canvas);
-                if (chartInstance) {
-                    chartInstance.destroy();
-                }
+        Object.values(this.data.charts).forEach(chart => {
+            if (chart) {
+                chart.destroy();
             }
-        });
-
-        // Reset chart references in data object
-        Object.keys(this.data.charts).forEach(key => {
-            this.data.charts[key] = null;
         });
     },
     
@@ -484,14 +690,14 @@ const DashboardApp = {
         });
     },
     
-    // Render Credential Analysis Charts
+    // NEW: Render Credential Analysis Charts
     renderCredentialAnalysisCharts() {
         this.renderFailedLoginsChart();
         this.renderLoginRatioChart();
-        this.renderPasswordAnalysisCharts();  // Add password analysis
+        this.renderPasswordAnalysisCharts();  // NEW: Add password analysis
     },
     
-    // Render Failed Logins Chart
+    // NEW: Render Failed Logins Chart
     renderFailedLoginsChart() {
         const failedLogins = this.data.currentData.failed_logins || {};
         const successfulLogins = this.data.currentData.successful_logins || {};
@@ -627,7 +833,7 @@ const DashboardApp = {
         });
     },
     
-    // Render Login Ratio Pie Chart
+    // NEW: Render Login Ratio Pie Chart
     renderLoginRatioChart() {
         const failedLogins = this.data.currentData.failed_logins || {};
         const successfulLogins = this.data.currentData.successful_logins || {};
@@ -704,14 +910,14 @@ const DashboardApp = {
         });
     },
     
-    // Render Password Analysis Charts
+    // NEW: Render Password Analysis Charts
     renderPasswordAnalysisCharts() {
         this.renderPasswordLengthChart();
         this.renderPasswordPatternsChart();
         this.renderTopPasswordsChart();
     },
     
-    // Render Password Length Distribution Chart
+    // NEW: Render Password Length Distribution Chart
     renderPasswordLengthChart() {
         const passwordAnalysis = this.data.currentData.password_analysis;
         if (!passwordAnalysis || !passwordAnalysis.length_distribution) {
@@ -805,7 +1011,7 @@ const DashboardApp = {
         });
     },
     
-    // Render Password Patterns Chart
+    // NEW: Render Password Patterns Chart
     renderPasswordPatternsChart() {
         const passwordAnalysis = this.data.currentData.password_analysis;
         if (!passwordAnalysis || !passwordAnalysis.pattern_distribution) {
@@ -892,7 +1098,7 @@ const DashboardApp = {
         });
     },
     
-    // Render Top Passwords Chart
+    // NEW: Render Top Passwords Chart
     renderTopPasswordsChart() {
         const passwordAnalysis = this.data.currentData.password_analysis;
         if (!passwordAnalysis || !passwordAnalysis.top_passwords) {
@@ -1147,203 +1353,6 @@ const DashboardApp = {
             this.renderEmptyChart(ctx, 'No dangerous commands detected');
         }
     },
-
-    // Render Attack Timing Analysis
-    // renderAttackTimingAnalysis() {
-    //     if (!this.data.currentData || !this.data.currentData.attack_timing) return;
-        
-    //     this.renderHourlyAttacksChart();
-    //     this.renderWeeklyAttacksChart();
-    //     this.renderAttackHeatmap();
-    // },
-
-    // Render Hourly Attacks Distribution
-    // renderHourlyAttacksChart() {
-    //     const hourlyData = this.data.currentData.attack_timing.hourly_distribution || {};
-    //     const hours = Array.from({length: 24}, (_, i) => i);
-    //     const attackCounts = hours.map(hour => hourlyData[hour] || 0);
-        
-    //     const ctx = document.getElementById('hourlyAttacksChart').getContext('2d');
-        
-    //     this.data.charts.hourlyAttacks = new Chart(ctx, {
-    //         type: 'bar',
-    //         data: {
-    //             labels: hours.map(hour => `${String(hour).padStart(2, '0')}:00`),
-    //             datasets: [{
-    //                 label: 'Number of Attacks',
-    //                 data: attackCounts,
-    //                 backgroundColor: this.createGradient(ctx, '#f59e0b', '#d97706'),
-    //                 borderColor: '#f59e0b',
-    //                 borderWidth: 2,
-    //                 borderRadius: 6
-    //             }]
-    //         },
-    //         options: {
-    //             responsive: true,
-    //             maintainAspectRatio: false,
-    //             plugins: {
-    //                 legend: {
-    //                     display: false
-    //                 },
-    //                 tooltip: {
-    //                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    //                     callbacks: {
-    //                         title: (context) => `Hour: ${context[0].label}`,
-    //                         label: (context) => `Attacks: ${context.parsed.y}`
-    //                     }
-    //                 }
-    //             },
-    //             scales: {
-    //                 x: {
-    //                     grid: {
-    //                         display: false
-    //                     },
-    //                     title: {
-    //                         display: true,
-    //                         text: 'Hour of Day (24h)',
-    //                         color: '#64748b'
-    //                     }
-    //                 },
-    //                 y: {
-    //                     beginAtZero: true,
-    //                     grid: {
-    //                         color: '#e2e8f0'
-    //                     },
-    //                     title: {
-    //                         display: true,
-    //                         text: 'Number of Attacks',
-    //                         color: '#64748b'
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     });
-    // },
-
-    // // Render Weekly Attacks Distribution
-    // renderWeeklyAttacksChart() {
-    //     const weeklyData = this.data.currentData.attack_timing.daily_distribution || {};
-    //     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    //     const attackCounts = daysOfWeek.map((_, index) => weeklyData[index] || 0);
-        
-    //     const ctx = document.getElementById('weeklyAttacksChart').getContext('2d');
-        
-    //     this.data.charts.weeklyAttacks = new Chart(ctx, {
-    //         type: 'line',
-    //         data: {
-    //             labels: daysOfWeek,
-    //             datasets: [{
-    //                 label: 'Number of Attacks',
-    //                 data: attackCounts,
-    //                 borderColor: '#f59e0b',
-    //                 backgroundColor: this.createGradient(ctx, 'rgba(245, 158, 11, 0.2)', 'rgba(245, 158, 11, 0.05)'),
-    //                 fill: true,
-    //                 tension: 0.4,
-    //                 pointBackgroundColor: '#f59e0b',
-    //                 pointBorderColor: '#ffffff',
-    //                 pointBorderWidth: 2,
-    //                 pointRadius: 6
-    //             }]
-    //         },
-    //         options: {
-    //             responsive: true,
-    //             maintainAspectRatio: false,
-    //             plugins: {
-    //                 legend: {
-    //                     display: false
-    //                 },
-    //                 tooltip: {
-    //                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    //                     callbacks: {
-    //                         title: (context) => context[0].label,
-    //                         label: (context) => `Attacks: ${context.parsed.y}`
-    //                     }
-    //                 }
-    //             },
-    //             scales: {
-    //                 x: {
-    //                     grid: {
-    //                         display: false
-    //                     }
-    //                 },
-    //                 y: {
-    //                     beginAtZero: true,
-    //                     grid: {
-    //                         color: '#e2e8f0'
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     });
-    // },
-
-    // // Render Attack Heatmap
-    // renderAttackHeatmap() {
-    //     const heatmapData = this.data.currentData.attack_timing.timeline_heatmap;
-    //     if (!heatmapData) return;
-
-    //     const container = document.getElementById('attackHeatmap');
-    //     const dates = Object.keys(Object.values(heatmapData)[0] || {}).sort();
-        
-    //     // Find max value for color scaling
-    //     const maxAttacks = Math.max(
-    //         ...Object.values(heatmapData).map(hourData => 
-    //             Math.max(...Object.values(hourData))
-    //         )
-    //     );
-
-    //     // Create heatmap grid
-    //     let html = '<div class="heatmap-grid">';
-        
-    //     // Add header row with dates
-    //     html += '<div class="heatmap-header">';
-    //     html += '<div class="heatmap-cell hour-label"></div>'; // Empty corner cell
-    //     dates.forEach(date => {
-    //         const displayDate = new Date(date).toLocaleDateString('en-US', {
-    //             month: 'short',
-    //             day: 'numeric'
-    //         });
-    //         html += `<div class="heatmap-cell date-label">${displayDate}</div>`;
-    //     });
-    //     html += '</div>';
-
-    //     // Add hour rows
-    //     for (let hour = 0; hour < 24; hour++) {
-    //         html += '<div class="heatmap-row">';
-    //         html += `<div class="heatmap-cell hour-label">${String(hour).padStart(2, '0')}:00</div>`;
-            
-    //         dates.forEach(date => {
-    //             const attacks = heatmapData[hour]?.[date] || 0;
-    //             const intensity = attacks / maxAttacks;
-    //             const backgroundColor = this.getHeatmapColor(intensity);
-    //             html += `
-    //                 <div class="heatmap-cell data-cell" 
-    //                     style="background-color: ${backgroundColor}"
-    //                     title="${attacks} attacks at ${hour}:00 on ${date}">
-    //                     ${attacks}
-    //                 </div>`;
-    //         });
-    //         html += '</div>';
-    //     }
-    //     html += '</div>';
-
-    //     // Add legend
-    //     html += `
-    //         <div class="heatmap-legend">
-    //             <span class="legend-label">Attack Intensity:</span>
-    //             <div class="legend-gradient"></div>
-    //             <span class="legend-max">Max: ${maxAttacks} attacks</span>
-    //         </div>`;
-
-    //     container.innerHTML = html;
-    // },
-
-    // Utility function for heatmap color generation
-    // getHeatmapColor(intensity) {
-    //     // Returns a color from green (low) to red (high)
-    //     const hue = ((1 - intensity) * 120).toString(10);
-    //     return `hsla(${hue}, 100%, 50%, ${0.1 + intensity * 0.9})`;
-    // },
     
     // Create gradient for charts
     createGradient(ctx, color1, color2) {
